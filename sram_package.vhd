@@ -74,6 +74,21 @@ package sram_package is
 			reset : in std_logic
 		);
 	end component;
+	component smc is
+		port
+		(
+			mc_start : in std_logic;
+			mc_write : in std_logic;
+			addr : in std_logic_vector (12 downto 0);
+			out_addr : out std_logic_vector(12 downto 0);
+			mc_writedata : in std_logic_vector (7 downto 0);
+			mc_readdata : out std_logic_vector(7 downto 0);
+			data_rw : inout std_logic_vector(7 downto 0);
+			we_bar, cs_bar, oe_bar : out std_logic;
+			clk, reset : in std_logic;
+			mc_done : out std_logic
+		);
+	end component;
 
 	component sram_main is
     generic  (
