@@ -14,7 +14,7 @@ entity smc is
 		out_addr : out std_logic_vector(12 downto 0);
 		mc_writedata : in std_logic_vector (7 downto 0);
 		mc_readdata : out std_logic_vector(7 downto 0);
-		data_rw : inout std_logic_vector(7 downto 0);
+		data_rw : inout std_logic_vector(7 downto 0) := (others => 'Z');
 		we_bar, cs_bar, oe_bar : out std_logic;
 		clk, reset : in std_logic;
 		mc_done : out std_logic
@@ -28,6 +28,7 @@ architecture logic of smc is
 	signal curr_state : FsmState;
 
 	signal mc_readdata_reg : std_logic_vector(7 downto 0);
+	signal mc_writedata_reg : std_logic_vector(7 downto 0);
 
 	signal mc_done_reg : std_logic;
 
@@ -39,6 +40,7 @@ architecture logic of smc is
 	signal st_wt : std_logic_vector(10 downto 0) := (others => '0');
 	signal do_wt : std_logic_vector(10 downto 0) := (others => '0');
 	constant highZ8 : std_logic_vector(7 downto 0) := (others => 'Z');
+	signal make_data_rw_high : std_logic := '0';
 
 begin
 
@@ -75,18 +77,23 @@ begin
 				generic map (data_width => 8)
 				port map 
 				(
-					Din => mc_readdata_reg,
+					Din => data_rw,
 					Dout => mc_readdata,
 					enable => start_reading,
 					clk => clk
 				);
+	--data_rw <= mc_writedata when (start_writing = '1') else highZ8;
+	--mc_writedata_reg <= mc_writedata when (start_writing = '1') else highZ8;
+	mc_writedata_reg <=  highZ8 when (make_data_rw_high = '1')
+						else mc_writedata when (start_writing = '1')
+						else highZ8;
 	data_write : data_register 
 				generic map (data_width => 8)
 				port map 
 				(
-					Din => mc_writedata,
+					Din => mc_writedata_reg,
 					Dout => data_rw,
-					enable => start_writing,
+					enable => '1',
 					clk => clk
 				);
 
@@ -112,12 +119,14 @@ begin
 			variable next_state : FsmState;
 			variable done_var : std_logic;
 
-			variable cs_bar_var : std_logic := '1';
-			variable oe_bar_var : std_logic := '1';
-			variable we_bar_var : std_logic := '1';
+			variable cs_bar_var : std_logic;
+			variable oe_bar_var : std_logic;
+			variable we_bar_var : std_logic;
 
-			variable start_reading_var : std_logic := '0';
-			variable start_writing_var : std_logic := '0';
+			variable start_reading_var : std_logic;
+			variable start_writing_var : std_logic;
+
+			variable make_data_rw_high_var : std_logic;
 			
 			variable st_wt_var : std_logic_vector(10 downto 0) := (others => '0');
 
@@ -127,16 +136,16 @@ begin
 			begin
 
 				next_state := curr_state;
-				
-				case curr_state is
 
+				case curr_state is
+					
 					when rst =>
 						cs_bar_var := '1';
 						oe_bar_var := '1';
 						we_bar_var := '1';
-						start_reading_var := '0';
-						start_writing_var := '0';
 						if (mc_start = '1') then
+							start_reading_var := '0';
+							start_writing_var := '0';
 							if (mc_write = '0') then
 								next_state := read_state;
 								st_wt_var(0) := '1'; 
@@ -150,6 +159,7 @@ begin
 						if (do_wt(0) = '1') then
 							st_wt_var(0) := '0';
 							st_wt_var(2) := '1'; 
+							cs_bar_var := '0';
 							next_state := read_wt1;
 						else
 							next_state := read_state;
@@ -159,6 +169,7 @@ begin
 						if(do_wt(2) = '1') then
 							st_wt_var(2) := '0';
 							st_wt_var(3) := '1';
+							oe_bar_var := '0';
 							next_state := read_data;
 						else 
 							next_state := read_wt1;
@@ -251,7 +262,9 @@ begin
 				start_reading <= start_reading_var;
 				start_writing <= start_writing_var;
 
-				mc_readdata_reg <= mc_readdata_var;
+				--mc_readdata_reg <= mc_readdata_var;
+
+				make_data_rw_high <= make_data_rw_high_var;
 
 				mc_done_reg <= done_var;
 			end process ; -- p1

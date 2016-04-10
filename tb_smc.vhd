@@ -62,7 +62,7 @@ architecture testing of tb_smc is
 	signal out_addr : std_logic_vector(12 downto 0);
 	signal mc_writedata : std_logic_vector (7 downto 0);
 	signal mc_readdata : std_logic_vector(7 downto 0);
-	signal data_rw : std_logic_vector(7 downto 0);
+	signal data_rw : std_logic_vector(7 downto 0) := (others => 'Z');
 	signal we_bar, cs_bar, oe_bar : std_logic;
 	signal clk, reset : std_logic := '1';
 	signal mc_done : std_logic;
@@ -107,27 +107,31 @@ begin
 			read (INPUT_LINE, address_bv);
 			read (INPUT_LINE, data_rw_bv);
 			
-			if (rw_bit = '1') then
-				ram(vec2int(address_bv)) := to_std_logic_vector(data_rw_bv);
-			end if;
+			--if (rw_bit = '1') then
+			--	ram(vec2int(address_bv)) := data_rw;
+			--end if;
 
 			--start
 			addr <= to_std_logic_vector(address_bv);
 			mc_start <= '1';
 
+
 			mc_write <= to_std_logic(rw_bit);
 
 			wait until clk = '1';
-
+			mc_start <= '0';
 			if (mc_write = '1') then
 				mc_writedata <= to_std_logic_vector(data_rw_bv);
 				wait until mc_done = '1';
+				ram(vec2int(address_bv)) := data_rw;
 			else
-				wait for 1 us;
-				data_rw <= ram(vec2int(address_bv)) after 35 ns;
+				wait until oe_bar = '0';
+				data_rw <= ram(vec2int(address_bv)) after 45 ns;
 				wait until mc_done = '1';
-				if (mc_write = '1') then
-					
+				if (mc_write = '0') then
+					--for I in 7 downto 0 loop
+					--	assert false report " "& std_logic'image(mc_readdata(I)) severity note;
+					--end loop;
 					if (mc_readdata /= to_std_logic_vector(data_rw_bv)) then
 
 						assert false report "fart at "& integer'image(LINE_COUNT) severity error;

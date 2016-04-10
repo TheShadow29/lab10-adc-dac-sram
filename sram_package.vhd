@@ -83,7 +83,7 @@ package sram_package is
 			out_addr : out std_logic_vector(12 downto 0);
 			mc_writedata : in std_logic_vector (7 downto 0);
 			mc_readdata : out std_logic_vector(7 downto 0);
-			data_rw : inout std_logic_vector(7 downto 0);
+			data_rw : inout std_logic_vector(7 downto 0) := (others => 'Z');
 			we_bar, cs_bar, oe_bar : out std_logic;
 			clk, reset : in std_logic;
 			mc_done : out std_logic
