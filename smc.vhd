@@ -40,7 +40,6 @@ architecture logic of smc is
 	signal st_wt : std_logic_vector(10 downto 0) := (others => '0');
 	signal do_wt : std_logic_vector(10 downto 0) := (others => '0');
 	constant highZ8 : std_logic_vector(7 downto 0) := (others => 'Z');
-	signal make_data_rw_high : std_logic := '0';
 
 begin
 
@@ -82,11 +81,9 @@ begin
 					enable => start_reading,
 					clk => clk
 				);
+	data_rw <= highZ8 when (counter_high = '1');
 	--data_rw <= mc_writedata when (start_writing = '1') else highZ8;
-	--mc_writedata_reg <= mc_writedata when (start_writing = '1') else highZ8;
-	mc_writedata_reg <=  highZ8 when (make_data_rw_high = '1')
-						else mc_writedata when (start_writing = '1')
-						else highZ8;
+	mc_writedata_reg <= mc_writedata when (start_writing = '1') else highZ8;
 	data_write : data_register 
 				generic map (data_width => 8)
 				port map 
@@ -125,8 +122,6 @@ begin
 
 			variable start_reading_var : std_logic;
 			variable start_writing_var : std_logic;
-
-			variable make_data_rw_high_var : std_logic;
 			
 			variable st_wt_var : std_logic_vector(10 downto 0) := (others => '0');
 
@@ -136,13 +131,14 @@ begin
 			begin
 
 				next_state := curr_state;
-
+				
 				case curr_state is
-					
+
 					when rst =>
 						cs_bar_var := '1';
 						oe_bar_var := '1';
 						we_bar_var := '1';
+
 						if (mc_start = '1') then
 							start_reading_var := '0';
 							start_writing_var := '0';
@@ -253,6 +249,10 @@ begin
 					end if;
 				end if;
 
+				--if (counter_high = '1') then
+				--	data_rw <= highZ8;
+				--end if;
+
 				cs_bar <= cs_bar_var;
 				oe_bar <= oe_bar_var;
 				we_bar <= we_bar_var;
@@ -262,9 +262,7 @@ begin
 				start_reading <= start_reading_var;
 				start_writing <= start_writing_var;
 
-				--mc_readdata_reg <= mc_readdata_var;
-
-				make_data_rw_high <= make_data_rw_high_var;
+				
 
 				mc_done_reg <= done_var;
 			end process ; -- p1

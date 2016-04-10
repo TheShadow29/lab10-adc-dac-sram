@@ -67,6 +67,8 @@ architecture testing of tb_smc is
 	signal clk, reset : std_logic := '1';
 	signal mc_done : std_logic;
 
+	constant highZ8 : std_logic_vector(7 downto 0) := (others => 'Z');
+
 begin
 	clk <= not clk after 10 ns;
 
@@ -121,10 +123,12 @@ begin
 			wait until clk = '1';
 			mc_start <= '0';
 			if (mc_write = '1') then
+				data_rw <= highZ8;
 				mc_writedata <= to_std_logic_vector(data_rw_bv);
 				wait until mc_done = '1';
 				ram(vec2int(address_bv)) := data_rw;
 			else
+				
 				wait until oe_bar = '0';
 				data_rw <= ram(vec2int(address_bv)) after 45 ns;
 				wait until mc_done = '1';
